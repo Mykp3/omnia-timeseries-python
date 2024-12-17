@@ -7,7 +7,13 @@ setup(
     author='Your Name',
     author_email='your_email@example.com',
     packages=find_packages(where='src'),  # Look for packages in the `src` directory
-    package_dir={'': 'src'},    
+    package_dir={'': 'src'},  
+    install_requires=[
+        'azure-identity',
+        'requests',
+        'opentelemetry-instrumentation-requests',
+        'importlib-metadata; python_version<"3.8"'
+    ],
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
