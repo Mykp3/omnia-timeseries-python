@@ -46,9 +46,10 @@ def _request(
         return response.content
 
 
-class AzureAuthenticator:
-    def __init__(self, azure_credential):
+class HttpClient:
+    def __init__(self, azure_credential: MsalCredential, resource_id: str):
         self._azure_credential = azure_credential
+        self._resource_id = resource_id
 
     def get_auth_endpoint(self, resource_id: str) -> str:
         return (
@@ -57,16 +58,10 @@ class AzureAuthenticator:
             else f"{resource_id}/.default"
         )
 
-    def get_token(self, resource_id: str) -> str:
-        auth_endpoint = self.get_auth_endpoint(resource_id)
+    def get_token(self) -> str:
+        auth_endpoint = self.get_auth_endpoint(self._resource_id)
         token = self._azure_credential.get_token(auth_endpoint)
         return token.token
-
-
-class HttpClient:
-    def __init__(self, azure_authenticator: AzureAuthenticator, resource_id: str):
-        self._azure_authenticator = azure_authenticator
-        self._resource_id = resource_id
 
     def request(
         self,
@@ -76,13 +71,8 @@ class HttpClient:
         payload: Optional[Union[dict, list]] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> Any:
-        
-        # Get the auth endpoint from AzureAuthenticator
-        auth_endpoint = self._azure_authenticator.get_auth_endpoint(self._resource_id)
 
-        # Get the token for the resolved endpoint
-        access_token = self._azure_authenticator.get_token(self._resource_id)
-
+        access_token = self.get_token()
 
         headers = {
             "Authorization": f"Bearer {access_token}",
@@ -91,7 +81,4 @@ class HttpClient:
             'User-Agent': f'Omnia Timeseries SDK/{version} {system_version_string}'
         }
 
-        print(f"Using Auth Endpoint: {auth_endpoint}")
-        print(f"Access Token: {access_token}")
-
-        return self._request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)
+        return _request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)
