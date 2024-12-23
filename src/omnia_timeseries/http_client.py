@@ -47,7 +47,7 @@ def _request(
 
 
 class HttpClient:
-    def __init__(self, azure_credential: MsalCredential, resource_id: str):
+    def __init__(self, azure_credential: ManagedIdentityCredential, resource_id: str):
         self._azure_credential = azure_credential
         self._resource_id = resource_id
 
@@ -62,7 +62,7 @@ class HttpClient:
         auth_endpoint = self.get_auth_endpoint(self._resource_id)
         token = self._azure_credential.get_token(auth_endpoint)
         return token.token
-
+        
     def request(
         self,
         request_type: str,
