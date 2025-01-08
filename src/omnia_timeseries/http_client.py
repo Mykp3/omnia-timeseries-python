@@ -47,9 +47,10 @@ def _request(
 
 
 class HttpClient:
-    def __init__(self, azure_credential: ManagedIdentityCredential, resource_id: str):
-        self._azure_credential = azure_credential
+    def __init__(self, client_id: str, resource_id: str):
+        azure_credential = ManagedIdentityCredential(client_id=client_id)
         self._resource_id = resource_id
+        self._access_token = azure_credential.get_token(self.get_auth_endpoint(resource_id)).token
 
     def get_auth_endpoint(self, resource_id: str) -> str:
         return (
@@ -59,10 +60,8 @@ class HttpClient:
         )
 
     def get_token(self) -> str:
-        auth_endpoint = self.get_auth_endpoint(self._resource_id)
-        token = self._azure_credential.get_token(auth_endpoint)
-        return token.token
-        
+        return self._access_token 
+
     def request(
         self,
         request_type: str,
@@ -72,13 +71,11 @@ class HttpClient:
         params: Optional[Dict[str, Any]] = None,
     ) -> Any:
 
-        access_token = self.get_token()
-
         headers = {
-            "Authorization": f"Bearer {access_token}",
+            "Authorization": f"Bearer {self._access_token}",
             "Content-Type": "application/json",
             "Accept": accept,
-            'User-Agent': f'Omnia Timeseries SDK/{version} {system_version_string}'
+            "User-Agent": f"Omnia Timeseries SDK/{version} {system_version_string}",
         }
 
         return _request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)
