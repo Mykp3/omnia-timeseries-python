@@ -67,10 +67,12 @@ class TimeseriesAPI:
     :param TimeseriesEnvironment environment: API deployment environment
     """
 
-    def __init__(self, azure_credential: MsalCredential, environment: TimeseriesEnvironment):
+    def __init__(self, environment: TimeseriesEnvironment):
         self._http_client = HttpClient(
-            azure_credential=azure_credential, resource_id=environment.resource_id)
+            resource_id=environment.resource_id
+        )
         self._base_url = environment.base_url.rstrip('/')
+    
 
     def write_data(self, id: str, data: DatapointsPostRequestModel, write_async: Optional[bool] = None) -> MessageModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=writeData"""
