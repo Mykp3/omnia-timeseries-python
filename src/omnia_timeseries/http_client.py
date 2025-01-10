@@ -50,6 +50,7 @@ class HttpClient:
         self._access_token = self._get_access_token(client_id)
 
     def _get_access_token(self, client_id: str) -> str:
+        client_id = client_id or os.getenv("AZURE_CLIENT_ID")
         try:
             if client_id:
                 # AKS SETUP
