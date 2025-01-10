@@ -45,35 +45,26 @@ def _request(
 
 
 class HttpClient:
-    def __init__(self, client_id: str, resource_id: str):
+    def __init__(self, resource_id: str, client_id: Optional[str] = None):
         self._resource_id = resource_id
-        self._access_token = self._get_access_token(client_id)
 
-    def _get_access_token(self, client_id: str) -> str:
-        client_id = client_id or os.getenv("AZURE_CLIENT_ID")
-        try:
-            if client_id:
-                # AKS SETUP
-                print(f"Using ManagedIdentityCredential with client_id: {client_id}")
-                azure_credential = ManagedIdentityCredential(client_id=client_id)
-            else:
-                # CLOUD SHELL SETIP
-                print("Using DefaultAzureCredential")
-                azure_credential = DefaultAzureCredential()
+        if client_id:
+            logger.info(f"Using ManagedIdentityCredential with client_id: {client_id}")
+            self._azure_credential = ManagedIdentityCredential(client_id=client_id)
+        else:
+            logger.info("Using DefaultAzureCredential")
+            self._azure_credential = DefaultAzureCredential()
 
-            token = azure_credential.get_token(self.get_auth_endpoint(self._resource_id)).token
-            return token
+        self._access_token = self._get_access_token()
 
-        except Exception as e:
-            print(f"Failed to acquire token: {e}")
-            raise
+    def _get_access_token(self) -> str:
+        token = self._azure_credential.get_token(self.get_auth_endpoint(self._resource_id)).token
+        print(f"Access Token Retrieved: {len(token)} characters")
+        return token
 
     def get_auth_endpoint(self, resource_id: str) -> str:
-        return (
-            "https://management.azure.com/.default"
-            if "azureml" in resource_id.lower()
-            else f"{resource_id}/.default"
-        )
+        return f"{resource_id}/.default" if "azureml" not in resource_id.lower() else "https://management.azure.com/.default"
+
 
     def get_token(self) -> str:
         return self._access_token 

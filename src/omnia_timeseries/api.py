@@ -68,12 +68,17 @@ class TimeseriesAPI:
     """
 
     def __init__(self, environment: TimeseriesEnvironment, *args, **kwargs):
-        if 'azure_credential' in kwargs:
-            del kwargs['azure_credential']
+        unwanted_keys = ['azure_credential', 'credential', 'auth_token']
+        for key in unwanted_keys:
+            if key in kwargs:
+                print(f"Removing unwanted key: {key}")
+                del kwargs[key]
+
         self._http_client = HttpClient(
             resource_id=environment.resource_id
         )
         self._base_url = environment.base_url.rstrip('/')
+
     
 
     def write_data(self, id: str, data: DatapointsPostRequestModel, write_async: Optional[bool] = None) -> MessageModel:
