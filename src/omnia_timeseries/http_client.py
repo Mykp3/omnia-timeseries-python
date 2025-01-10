@@ -2,7 +2,7 @@ from typing import Literal, Optional, TypedDict, Union, Dict, Any
 from azure.identity._internal.msal_credentials import MsalCredential
 import requests
 import logging
-from azure.identity import ManagedIdentityCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 import os
 
 
@@ -17,8 +17,6 @@ ContentType = Literal["application/json",
 
 RequestType = Literal['get', 'put', 'post', 'patch', 'delete']
 
-CLIENT_ID = os.getenv("AZURE_CLIENT_ID")
-credential = ManagedIdentityCredential(client_id=CLIENT_ID)
 
 logger = logging.getLogger(__name__)
 version = metadata.version("omnia_timeseries")
@@ -48,9 +46,26 @@ def _request(
 
 class HttpClient:
     def __init__(self, client_id: str, resource_id: str):
-        azure_credential = ManagedIdentityCredential(client_id=client_id)
         self._resource_id = resource_id
-        self._access_token = azure_credential.get_token(self.get_auth_endpoint(resource_id)).token
+        self._access_token = self._get_access_token(client_id)
+
+    def _get_access_token(self, client_id: str) -> str:
+        try:
+            if client_id:
+                # AKS SETUP
+                print(f"Using ManagedIdentityCredential with client_id: {client_id}")
+                azure_credential = ManagedIdentityCredential(client_id=client_id)
+            else:
+                # CLOUD SHELL SETIP
+                print("Using DefaultAzureCredential")
+                azure_credential = DefaultAzureCredential()
+
+            token = azure_credential.get_token(self.get_auth_endpoint(self._resource_id)).token
+            return token
+
+        except Exception as e:
+            print(f"Failed to acquire token: {e}")
+            raise
 
     def get_auth_endpoint(self, resource_id: str) -> str:
         return (
