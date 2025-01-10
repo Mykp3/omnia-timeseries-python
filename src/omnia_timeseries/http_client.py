@@ -12,6 +12,8 @@ from importlib import metadata
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 import platform
 
+AZURE_CLIENT_ID = os.getenv("AZURE_CLIENT_ID")
+
 ContentType = Literal["application/json",
                       "application/protobuf", "application/x-google-protobuf"]
 
@@ -45,26 +47,33 @@ def _request(
 
 
 class HttpClient:
-    def __init__(self, resource_id: str, client_id: Optional[str] = None):
-        self._resource_id = resource_id
+    def _get_access_token(self, client_id: Optional[str] = None) -> str:
+        is_kubernetes_env = os.getenv("KUBERNETES_SERVICE_HOST")
+        resource_id = self._resource_id
 
-        if client_id:
-            logger.info(f"Using ManagedIdentityCredential with client_id: {client_id}")
-            self._azure_credential = ManagedIdentityCredential(client_id=client_id)
+        if "azureml" in resource_id.lower():
+            auth_endpoint = "https://management.azure.com/.default"
+            print("🔧 Adjusting auth endpoint for AzureML resource")
         else:
-            logger.info("Using DefaultAzureCredential")
-            self._azure_credential = DefaultAzureCredential()
+            auth_endpoint = f"{resource_id}/.default"
 
-        self._access_token = self._get_access_token()
+        client_id = client_id or os.getenv("AZURE_CLIENT_ID")
+        try:
+            if is_kubernetes_env:
+                # 🔑 !!!!AKS!!!! 
+                print(f"Using ManagedIdentityCredential with client_id: {client_id}")
+                azure_credential = ManagedIdentityCredential(client_id=client_id)
+            else:
+                # shell
+                print("Using DefaultAzureCredential")
+                azure_credential = DefaultAzureCredential()
 
-    def _get_access_token(self) -> str:
-        token = self._azure_credential.get_token(self.get_auth_endpoint(self._resource_id)).token
-        print(f"Access Token Retrieved: {len(token)} characters")
-        return token
+            token = azure_credential.get_token(auth_endpoint).token
+            return token
 
-    def get_auth_endpoint(self, resource_id: str) -> str:
-        return f"{resource_id}/.default" if "azureml" not in resource_id.lower() else "https://management.azure.com/.default"
-
+        except Exception as e:
+            print(f"Error fetching token: {e}")
+            raise
 
     def get_token(self) -> str:
         return self._access_token 
