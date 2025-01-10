@@ -13,6 +13,17 @@ FROM base as builder
 RUN apt-get update && \
     apt-get install --no-install-suggests --no-install-recommends --yes gcc libhdf5-dev pkg-config
 
+RUN python -m venv /venv
+
+
+# Install Dependencies into Virtual Environment
+RUN /venv/bin/pip install --no-cache-dir --upgrade pip setuptools && \
+    /venv/bin/pip install marshmallow==3.19.0 && \
+    /venv/bin/pip install azure-ai-ml --upgrade && \
+    /venv/bin/pip install .
+
+
+
 # Set Working Directory
 WORKDIR /code
 
@@ -25,11 +36,6 @@ RUN pip install --upgrade pip setuptools wheel && \
     pip install .
 
 # Create Virtual Environment
-RUN python -m venv /venv
-
-# Install Dependencies into Virtual Environment
-RUN /venv/bin/pip install --no-cache-dir --upgrade pip setuptools && \
-    /venv/bin/pip install .
 
 # Runner Stage
 FROM base AS runner
