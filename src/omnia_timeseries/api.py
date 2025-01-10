@@ -67,7 +67,9 @@ class TimeseriesAPI:
     :param TimeseriesEnvironment environment: API deployment environment
     """
 
-    def __init__(self, environment: TimeseriesEnvironment):
+    def __init__(self, environment: TimeseriesEnvironment, *args, **kwargs):
+        if 'azure_credential' in kwargs:
+            del kwargs['azure_credential']
         self._http_client = HttpClient(
             resource_id=environment.resource_id
         )
