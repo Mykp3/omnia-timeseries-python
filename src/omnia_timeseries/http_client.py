@@ -45,8 +45,6 @@ def _request(
         return response.content
 
 
-from azure.identity import ManagedIdentityCredential
-
 class HttpClient:
     def __init__(self, resource_id: str, azure_credential=None, client_id=None):
         """
@@ -63,11 +61,6 @@ class HttpClient:
         self._access_token = self._get_access_token()
 
     def _get_access_token(self) -> str:
-        """
-        Retrieves an access token using ManagedIdentityCredential only.
-
-        :return: Access token as a string.
-        """
         resource_id = self._resource_id
         auth_endpoint = "https://management.azure.com/.default" if "ml" in resource_id.lower() else f"{resource_id}/.default"
 
@@ -91,16 +84,7 @@ class HttpClient:
         payload: Optional[Union[dict, list]] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> Any:
-        """
-        Makes an HTTP request using the current access token.
 
-        :param request_type: The type of HTTP request (GET, POST, etc.).
-        :param url: The request URL.
-        :param accept: The 'Accept' header value.
-        :param payload: The request payload (for POST/PUT requests).
-        :param params: Query parameters for the request.
-        :return: The response from the HTTP request.
-        """
         headers = {
             "Authorization": f"Bearer {self._access_token}",
             "Content-Type": "application/json",
@@ -112,7 +96,7 @@ class HttpClient:
 
         # If unauthorized, refresh the token and retry
         if response.status_code == 401:
-            print("🔐 Unauthorized. Attempting to refresh the token and retry...")
+            print("Unauthorized. Attempting to refresh the token and retry...")
             self._access_token = self._get_access_token()
             headers["Authorization"] = f"Bearer {self._access_token}"
             response = _request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)
