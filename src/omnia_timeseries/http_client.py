@@ -47,7 +47,7 @@ def _request(
 
 
 class HttpClient:
-    def _get_access_token(self, client_id: Optional[str] = None) -> str:
+    def _get_access_token(self, client_id: str) -> str:
         is_kubernetes_env = os.getenv("KUBERNETES_SERVICE_HOST")
         resource_id = self._resource_id
 
@@ -57,7 +57,7 @@ class HttpClient:
         else:
             auth_endpoint = f"{resource_id}/.default"
 
-        client_id = client_id or os.getenv("AZURE_CLIENT_ID")
+        client_id = os.getenv("AZURE_CLIENT_ID")
         try:
             if is_kubernetes_env:
                 # 🔑 !!!!AKS!!!! 
