@@ -1,5 +1,4 @@
 from typing import Literal, Optional, TypedDict, Union, Dict, Any
-from azure.identity._internal.msal_credentials import MsalCredential
 import requests
 import logging
 from azure.identity import ManagedIdentityCredential
@@ -46,6 +45,8 @@ def _request(
         return response.content
 
 
+from azure.identity import ManagedIdentityCredential
+
 class HttpClient:
     def __init__(self, resource_id: str, azure_credential=None, client_id=None):
         """
@@ -62,11 +63,17 @@ class HttpClient:
         self._access_token = self._get_access_token()
 
     def _get_access_token(self) -> str:
+        """
+        Retrieves an access token using ManagedIdentityCredential only.
+
+        :return: Access token as a string.
+        """
         resource_id = self._resource_id
         auth_endpoint = "https://management.azure.com/.default" if "ml" in resource_id.lower() else f"{resource_id}/.default"
 
-        print(f"🔧 Using ManagedIdentityCredential with client_id: {self._client_id}")
+        print(f"🔧 Forcing use of ManagedIdentityCredential with client_id: {self._client_id}")
         try:
+            # Force the use of ManagedIdentityCredential ONLY, no fallback
             azure_credential = ManagedIdentityCredential(client_id=self._client_id)
             token = azure_credential.get_token(auth_endpoint).token
             print(f"✅ Successfully retrieved token: {token[:10]}...")
@@ -84,7 +91,16 @@ class HttpClient:
         payload: Optional[Union[dict, list]] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> Any:
+        """
+        Makes an HTTP request using the current access token.
 
+        :param request_type: The type of HTTP request (GET, POST, etc.).
+        :param url: The request URL.
+        :param accept: The 'Accept' header value.
+        :param payload: The request payload (for POST/PUT requests).
+        :param params: Query parameters for the request.
+        :return: The response from the HTTP request.
+        """
         headers = {
             "Authorization": f"Bearer {self._access_token}",
             "Content-Type": "application/json",
@@ -102,4 +118,5 @@ class HttpClient:
             response = _request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)
 
         return response
+
 
