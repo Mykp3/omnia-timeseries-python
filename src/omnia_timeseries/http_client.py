@@ -47,43 +47,35 @@ def _request(
 
 
 class HttpClient:
-    def __init__(self, resource_id: str):
+    def __init__(self, resource_id: str, azure_credential=None, client_id=None):
+        """
+        Initializes the HttpClient class.
+
+        :param resource_id: The resource ID for which to obtain the access token.
+        :param azure_credential: Accepted but ignored. Kept for backward compatibility.
+        :param client_id: Accepted but ignored. Kept for backward compatibility.
+        """
         self._resource_id = resource_id
         self._access_token = self._get_access_token()
 
     def _get_access_token(self) -> str:
-        is_kubernetes_env = os.getenv("KUBERNETES_SERVICE_HOST")
         resource_id = self._resource_id
-        if "azureml" in resource_id.lower():
-            auth_endpoint = "https://management.azure.com/.default"
-            print("🔧 Using generic auth endpoint for AzureML resource due to network restrictions")
-        else:
-            auth_endpoint = f"{resource_id}/.default"
+        auth_endpoint = "https://management.azure.com/.default" if "azureml" in resource_id.lower() else f"{resource_id}/.default"
 
         client_id = os.getenv("AZURE_CLIENT_ID")
         if not client_id:
             raise ValueError("AZURE_CLIENT_ID environment variable is not set.")
 
+        print(f"Using ManagedIdentityCredential with client_id: {client_id}")
         try:
-            if is_kubernetes_env:
-                print(f"Using ManagedIdentityCredential with client_id: {client_id}")
-                azure_credential = ManagedIdentityCredential(client_id=client_id)
-            else:
-                print("Using DefaultAzureCredential")
-                azure_credential = DefaultAzureCredential()
-
+            azure_credential = ManagedIdentityCredential(client_id=client_id)
             token = azure_credential.get_token(auth_endpoint).token
             print(f"Successfully retrieved token: {token[:10]}...")
             return token
 
         except Exception as e:
-            print(f"Error fetching token for {auth_endpoint}: {str(e)}")
+            print(f"Error fetching token: {e}")
             raise
-
-    def refresh_token(self):
-        """Refresh the access token."""
-        print("🔄 Refreshing access token...")
-        self._access_token = self._get_access_token()
 
     def request(
         self,
@@ -93,7 +85,7 @@ class HttpClient:
         payload: Optional[Union[dict, list]] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> Any:
-        """Make a request with the current access token."""
+
         headers = {
             "Authorization": f"Bearer {self._access_token}",
             "Content-Type": "application/json",
@@ -103,11 +95,12 @@ class HttpClient:
 
         response = _request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)
 
-
+        # If unauthorized, refresh the token and retry
         if response.status_code == 401:
-            print("Unauthorized. Attempting to refresh the token and retry...")
-            self.refresh_token()
+            print("🔐 Unauthorized. Attempting to refresh the token and retry...")
+            self._access_token = self._get_access_token()
             headers["Authorization"] = f"Bearer {self._access_token}"
             response = _request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)
 
         return response
+
