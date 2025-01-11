@@ -47,36 +47,43 @@ def _request(
 
 
 class HttpClient:
-    def _get_access_token(self, client_id: str) -> str:
+    def __init__(self, resource_id: str):
+        self._resource_id = resource_id
+        self._access_token = self._get_access_token()
+
+    def _get_access_token(self) -> str:
         is_kubernetes_env = os.getenv("KUBERNETES_SERVICE_HOST")
         resource_id = self._resource_id
-
         if "azureml" in resource_id.lower():
             auth_endpoint = "https://management.azure.com/.default"
-            print("🔧 Adjusting auth endpoint for AzureML resource")
+            print("🔧 Using generic auth endpoint for AzureML resource due to network restrictions")
         else:
             auth_endpoint = f"{resource_id}/.default"
 
         client_id = os.getenv("AZURE_CLIENT_ID")
+        if not client_id:
+            raise ValueError("AZURE_CLIENT_ID environment variable is not set.")
+
         try:
             if is_kubernetes_env:
-                # 🔑 !!!!AKS!!!! 
                 print(f"Using ManagedIdentityCredential with client_id: {client_id}")
                 azure_credential = ManagedIdentityCredential(client_id=client_id)
             else:
-                # shell
                 print("Using DefaultAzureCredential")
                 azure_credential = DefaultAzureCredential()
 
             token = azure_credential.get_token(auth_endpoint).token
+            print(f"Successfully retrieved token: {token[:10]}...")
             return token
 
         except Exception as e:
-            print(f"Error fetching token: {e}")
+            print(f"Error fetching token for {auth_endpoint}: {str(e)}")
             raise
 
-    def get_token(self) -> str:
-        return self._access_token 
+    def refresh_token(self):
+        """Refresh the access token."""
+        print("🔄 Refreshing access token...")
+        self._access_token = self._get_access_token()
 
     def request(
         self,
@@ -86,7 +93,7 @@ class HttpClient:
         payload: Optional[Union[dict, list]] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> Any:
-
+        """Make a request with the current access token."""
         headers = {
             "Authorization": f"Bearer {self._access_token}",
             "Content-Type": "application/json",
@@ -94,4 +101,13 @@ class HttpClient:
             "User-Agent": f"Omnia Timeseries SDK/{version} {system_version_string}",
         }
 
-        return _request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)
+        response = _request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)
+
+
+        if response.status_code == 401:
+            print("Unauthorized. Attempting to refresh the token and retry...")
+            self.refresh_token()
+            headers["Authorization"] = f"Bearer {self._access_token}"
+            response = _request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)
+
+        return response
