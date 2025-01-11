@@ -2,7 +2,7 @@ from typing import Literal, Optional, TypedDict, Union, Dict, Any
 from azure.identity._internal.msal_credentials import MsalCredential
 import requests
 import logging
-from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+from azure.identity import ManagedIdentityCredential
 import os
 
 
@@ -56,25 +56,24 @@ class HttpClient:
         :param client_id: Accepted but ignored. Kept for backward compatibility.
         """
         self._resource_id = resource_id
+        self._client_id = client_id or os.getenv("AZURE_CLIENT_ID")
+        if not self._client_id:
+            raise ValueError("AZURE_CLIENT_ID environment variable is not set.")
         self._access_token = self._get_access_token()
 
     def _get_access_token(self) -> str:
         resource_id = self._resource_id
         auth_endpoint = "https://management.azure.com/.default" if "azureml" in resource_id.lower() else f"{resource_id}/.default"
 
-        client_id = os.getenv("AZURE_CLIENT_ID")
-        if not client_id:
-            raise ValueError("AZURE_CLIENT_ID environment variable is not set.")
-
-        print(f"Using ManagedIdentityCredential with client_id: {client_id}")
+        print(f"🔧 Using ManagedIdentityCredential with client_id: {self._client_id}")
         try:
-            azure_credential = ManagedIdentityCredential(client_id=client_id)
+            azure_credential = ManagedIdentityCredential(client_id=self._client_id)
             token = azure_credential.get_token(auth_endpoint).token
-            print(f"Successfully retrieved token: {token[:10]}...")
+            print(f"✅ Successfully retrieved token: {token[:10]}...")
             return token
 
         except Exception as e:
-            print(f"Error fetching token: {e}")
+            print(f"❌ Error fetching token: {e}")
             raise
 
     def request(
