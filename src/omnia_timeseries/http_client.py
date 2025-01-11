@@ -63,7 +63,7 @@ class HttpClient:
 
     def _get_access_token(self) -> str:
         resource_id = self._resource_id
-        auth_endpoint = "https://management.azure.com/.default" if "azureml" in resource_id.lower() else f"{resource_id}/.default"
+        auth_endpoint = "https://management.azure.com/.default" if "ml" in resource_id.lower() else f"{resource_id}/.default"
 
         print(f"🔧 Using ManagedIdentityCredential with client_id: {self._client_id}")
         try:
