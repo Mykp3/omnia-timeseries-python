@@ -58,8 +58,9 @@ class HttpClient:
         params: Optional[Dict[str, Any]] = None
     ) -> Any:
         is_kubernetes_env = os.getenv("KUBERNETES_SERVICE_HOST") is not None
+        is_azure_ml_resource = "ml" in self._resource_id.lower()
 
-        if is_kubernetes_env:
+        if is_kubernetes_env and is_azure_ml_resource:
             auth_endpoint = "https://management.azure.com/.default"
             print("Using 'management.azure.com' endpoint for AKS environment.")
         else:
