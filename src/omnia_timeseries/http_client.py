@@ -1,5 +1,6 @@
 from typing import Literal, Optional, TypedDict, Union, Dict, Any
 from azure.identity._internal.msal_credentials import MsalCredential
+from azure.identity import ManagedIdentityCredential
 import requests
 import logging
 
@@ -41,10 +42,12 @@ def _request(
         return response.content
 
 
+
 class HttpClient:
-    def __init__(self, azure_credential: MsalCredential, resource_id: str):
+    def __init__(self, azure_credential: MsalCredential, resource_id: str, client_id: Optional[str] = None):
         self._azure_credential = azure_credential
         self._resource_id = resource_id
+        self._client_id = client_id
 
     def request(
         self,
@@ -56,13 +59,14 @@ class HttpClient:
     ) -> Any:
         is_kubernetes_env = os.getenv("KUBERNETES_SERVICE_HOST") is not None
 
-        if is_kubernetes_env and "ml" in self._resource_id.lower():
+        if is_kubernetes_env:
             auth_endpoint = "https://management.azure.com/.default"
-            print("🔧 Using 'management.azure.com' endpoint for AKS environment.")
+            print("Using 'management.azure.com' endpoint for AKS environment.")
         else:
-            auth_endpoint = f'{self._resource_id}/.default' # handles caching and refreshing internally
+            auth_endpoint = f'{self._resource_id}/.default'
 
-        access_token = self._azure_credential.get_token(auth_endpoint) 
+        azure_credential = ManagedIdentityCredential(client_id=self._client_id)
+        access_token = azure_credential.get_token(auth_endpoint)
 
         headers = {
             'Authorization': f'Bearer {access_token.token}',
