@@ -59,7 +59,6 @@ class HttpClient:
 
         if "ml" in self._resource_id.lower():
             auth_endpoint = "https://management.azure.com/.default"
-            print("🔧 Using 'management.azure.com' endpoint for Azure ML resource.")
         else:
             auth_endpoint = f"{self._resource_id}/.default"
 
@@ -72,3 +71,4 @@ class HttpClient:
             'Accept': accept,
             'User-Agent': f'Omnia Timeseries SDK/{version} {system_version_string}'
         }
+        return _request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)

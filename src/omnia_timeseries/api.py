@@ -1,4 +1,5 @@
 from typing import List, Literal, Optional
+import re
 from azure.identity._internal.msal_credentials import MsalCredential
 from omnia_timeseries.http_client import HttpClient, ContentType
 from omnia_timeseries.models import (
@@ -41,8 +42,18 @@ class TimeseriesEnvironment:
         :param str resource_id: Resource/client id of API app registration (Azure SPN)
         :param str base_url: Baze url of API
         '''
-        self._resource_id = resource_id
-        self._base_url = base_url
+        self._resource_id = self._sanitize_resource_id(resource_id)
+        self._base_url = base_url.rstrip('/')
+
+    def _sanitize_resource_id(self, resource_id: str) -> str:
+        """
+        Sanitizes the resource ID to ensure no 'ml' endpoints are passed.
+        """
+        if re.search(r'\bml\b', resource_id.lower()) or "ml.azure.com" in resource_id.lower():
+            print("🔧 Replacing 'ml' endpoint with 'management.azure.com'")
+            return "https://management.azure.com"
+
+        return resource_id
 
     @classmethod
     def Dev(cls, version: TimeseriesVersion = "1.7"):
