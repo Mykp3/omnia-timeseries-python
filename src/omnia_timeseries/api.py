@@ -1,4 +1,5 @@
 from typing import List, Literal, Optional
+from azure.identity._internal.msal_credentials import MsalCredential
 from omnia_timeseries.http_client import HttpClient, ContentType
 from omnia_timeseries.models import (
     DatapointModel,
@@ -11,11 +12,26 @@ from omnia_timeseries.models import (
     TimeseriesPatchRequestItem, TimeseriesRequestItem
 )
 import logging
+from enum import Enum
 
 TimeseriesVersion = Literal["1.6", "1.7"]
 
 logger = logging.getLogger(__name__)
 
+class FederationSource(Enum):
+    """
+    Set source that Omnia Timeseries API will use when executing a given query:
+    - Use `IMS` to query the underlying PI or IP21 IMS source. 
+    - Use `TSDB` for Omnia timeseries database which should be up-to-date with IMS.
+    - Use `DataLake` for historic Omnia timeseries data which is 2 days behind `TSDB` and may contain data older than `TSDB`. 
+    """
+    #Ensure that Enum string value is returned instead of Enum full name
+    def __str__(self):
+        return self.value
+    
+    IMS = "IMS"
+    TSDB = "TSDB"
+    DataLake = "DataLake"
 
 class TimeseriesEnvironment:
     def __init__(self, resource_id: str, base_url: str):
@@ -27,6 +43,16 @@ class TimeseriesEnvironment:
         '''
         self._resource_id = resource_id
         self._base_url = base_url
+
+    @classmethod
+    def Dev(cls, version: TimeseriesVersion = "1.7"):
+        '''
+        Sets up non-production dev environment
+        '''
+        return cls(
+            resource_id="32f2a909-8a98-4eb8-b22d-1208d9350cb0",
+            base_url=f"https://api-dev.gateway.equinor.com/plant/timeseries/v{version}"
+        )
 
     @classmethod
     def Test(cls, version: TimeseriesVersion = "1.7"):
@@ -56,7 +82,6 @@ class TimeseriesEnvironment:
     def base_url(self) -> str:
         return self._base_url
 
-
 class TimeseriesAPI:
     """
     Wrapper class for interacting with the Omnia Industrial IIoT Timeseries API.
@@ -66,19 +91,10 @@ class TimeseriesAPI:
     :param TimeseriesEnvironment environment: API deployment environment
     """
 
-    def __init__(self, environment: TimeseriesEnvironment, *args, **kwargs):
-        unwanted_keys = ['azure_credential', 'credential', 'auth_token']
-        for key in unwanted_keys:
-            if key in kwargs:
-                print(f"Removing unwanted key: {key}")
-                del kwargs[key]
-
+    def __init__(self, azure_credential: MsalCredential, environment: TimeseriesEnvironment):
         self._http_client = HttpClient(
-            resource_id=environment.resource_id
-        )
+            azure_credential=azure_credential, resource_id=environment.resource_id)
         self._base_url = environment.base_url.rstrip('/')
-
-    
 
     def write_data(self, id: str, data: DatapointsPostRequestModel, write_async: Optional[bool] = None) -> MessageModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=writeData"""
@@ -107,7 +123,7 @@ class TimeseriesAPI:
             includeOutsidePoints: Optional[bool] = None,
             limit: Optional[int] = None,
             continuationToken: Optional[str] = None,
-            federationSource: Optional[str] = None,
+            federationSource: Optional[Enum] = None,
             accept: ContentType = "application/json") -> GetDatapointsResponseModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetData"""
         params = {}
@@ -143,7 +159,7 @@ class TimeseriesAPI:
             includeOutsidePoints: Optional[bool] = None,
             limit: Optional[int] = None,
             continuationToken: Optional[str] = None,
-            federationSource: Optional[str] = None,
+            federationSource: Optional[Enum] = None,
             accept: ContentType = "application/json") -> GetDatapointsResponseModel:
         """https://api.equinor.com/docs/services/Timeseries-api-v1-7/operations/getDataByName"""
         params = {}
@@ -176,7 +192,7 @@ class TimeseriesAPI:
             self,
             request: List[GetMultipleDatapointsRequestItem],
             continuationToken: Optional[str] = None,
-            federationSource: Optional[str] = None,
+            federationSource: Optional[Enum] = None,
             accept: ContentType = "application/json") -> GetAggregatesResponseModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetMultipleData"""
         params = {}
@@ -203,7 +219,7 @@ class TimeseriesAPI:
             fill: Optional[str] = None,
             limit: Optional[int] = None,
             continuationToken: Optional[str] = None,
-            federationSource: Optional[str] = None,
+            federationSource: Optional[Enum] = None,
             accept: ContentType = "application/json") -> GetAggregatesResponseModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetAggregatedData"""
         params = {}
@@ -238,7 +254,7 @@ class TimeseriesAPI:
             afterTime: Optional[str] = None,
             beforeTime: Optional[str] = None,
             status: Optional[List[int]] = None,
-            federationSource: Optional[str] = None,
+            federationSource: Optional[Enum] = None,
             accept: ContentType = "application/json") -> DatapointModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetFirst"""
         params = {}
@@ -263,7 +279,7 @@ class TimeseriesAPI:
             afterTime: Optional[str] = None,
             beforeTime: Optional[str] = None,
             status: Optional[List[int]] = None,
-            federationSource: Optional[str] = None,
+            federationSource: Optional[Enum] = None,
             accept: ContentType = "application/json") -> GetDatapointsResponseModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetLatest"""
         params = {}
@@ -284,7 +300,7 @@ class TimeseriesAPI:
 
     def get_first_multi_datapoint(self,
                                   request: List[GetMultipleDatapointsRequestItem],
-                                  federationSource: Optional[str] = None,
+                                  federationSource: Optional[Enum] = None,
                                   accept: ContentType = "application/json") -> GetDatapointsResponseModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetMultipleFirst"""
         params = {}
@@ -300,7 +316,7 @@ class TimeseriesAPI:
 
     def get_latest_multi_datapoint(self,
                                    request: List[GetMultipleDatapointsRequestItem],
-                                   federationSource: Optional[str] = None,
+                                   federationSource: Optional[Enum] = None,
                                    accept: ContentType = "application/json") -> GetDatapointsResponseModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetMultipleLatest"""
         params = {}
@@ -332,7 +348,7 @@ class TimeseriesAPI:
             continuationToken: Optional[str] = None,
             **kwargs) -> GetTimeseriesResponseModel:
         """
-        https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=getTimeseries
+        https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=Getall
         Note that maximum result set is 100.000 items.
         """
         params = kwargs or {}
@@ -452,7 +468,7 @@ class TimeseriesAPI:
         )
 
     def get_streaming_subscriptions(self) -> StreamSubscriptionDataModel:
-        """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=getStreamSubscriptions"""
+        """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetSubscriptions"""
         return self._http_client.request(
             request_type='get',
             url=f"{self._base_url}/streaming/subscriptions"
