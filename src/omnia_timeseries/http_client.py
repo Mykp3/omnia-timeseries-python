@@ -42,7 +42,6 @@ def _request(
         return response.content
 
 
-
 class HttpClient:
     def __init__(self, azure_credential: MsalCredential, resource_id: str, client_id: Optional[str] = None):
         self._azure_credential = azure_credential
@@ -51,20 +50,18 @@ class HttpClient:
 
     def request(
         self,
-        request_type: RequestType,
+        request_type: str,
         url: str,
-        accept: ContentType = "application/json",
-        payload: Optional[Union[TypedDict, dict, list]] = None,
-        params: Optional[Dict[str, Any]] = None
+        accept: str = "application/json",
+        payload: Optional[Union[dict, list]] = None,
+        params: Optional[dict] = None
     ) -> Any:
-        is_kubernetes_env = os.getenv("KUBERNETES_SERVICE_HOST") is not None
-        is_azure_ml_resource = "ml" in self._resource_id.lower()
 
-        if is_kubernetes_env and is_azure_ml_resource:
+        if "ml" in self._resource_id.lower():
             auth_endpoint = "https://management.azure.com/.default"
-            print("Using 'management.azure.com' endpoint for AKS environment.")
+            print("🔧 Using 'management.azure.com' endpoint for Azure ML resource.")
         else:
-            auth_endpoint = f'{self._resource_id}/.default'
+            auth_endpoint = f"{self._resource_id}/.default"
 
         azure_credential = ManagedIdentityCredential(client_id=self._client_id)
         access_token = azure_credential.get_token(auth_endpoint)
@@ -75,5 +72,3 @@ class HttpClient:
             'Accept': accept,
             'User-Agent': f'Omnia Timeseries SDK/{version} {system_version_string}'
         }
-
-        return _request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)
