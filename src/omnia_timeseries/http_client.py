@@ -43,10 +43,9 @@ def _request(
 
 
 class HttpClient:
-    def __init__(self, azure_credential: DefaultAzureCredential, resource_id: str, client_id: str):
+    def __init__(self, azure_credential: DefaultAzureCredential, resource_id: str):
         self._azure_credential = azure_credential 
         self._resource_id = resource_id
-        self._client_id = client_id
 
     def request(self, request_type: str, url: str, accept: str = "application/json", payload: Optional[Union[dict, list]] = None, params: Optional[dict] = None) -> Any:
         if "ml" in self._resource_id.lower():
