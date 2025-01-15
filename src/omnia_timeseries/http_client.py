@@ -9,7 +9,7 @@ from importlib import metadata
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 import platform
 import os
-
+CLIENT_ID = os.getenv("AZURE_CLIENT_ID")
 ContentType = Literal["application/json",
                       "application/protobuf", "application/x-google-protobuf"]
 
@@ -45,8 +45,7 @@ class HttpClient:
     def __init__(self, azure_credential: ManagedIdentityCredential, resource_id: str, client_id: Optional[str] = None):
         self._azure_credential = azure_credential
         self._resource_id = resource_id
-        self._client_id = os.getenv("AZURE_CLIENT_ID")
-
+        self._client_id = client_id
     def request(
         self,
         request_type: str,
@@ -61,7 +60,7 @@ class HttpClient:
         else:
             auth_endpoint = f"{self._resource_id}/.default"
 
-        azure_credential = ManagedIdentityCredential(client_id=self._client_id)
+        azure_credential = ManagedIdentityCredential(client_id=CLIENT_ID)
         access_token = azure_credential.get_token(auth_endpoint)
 
         headers = {
