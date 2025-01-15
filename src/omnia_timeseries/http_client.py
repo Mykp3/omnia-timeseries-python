@@ -1,5 +1,6 @@
 from typing import Literal, Optional, TypedDict, Union, Dict, Any
 from azure.identity import ManagedIdentityCredential
+from azure.identity import DefaultAzureCredential
 import requests
 import logging
 
@@ -42,25 +43,19 @@ def _request(
 
 
 class HttpClient:
-    def __init__(self, azure_credential: ManagedIdentityCredential, resource_id: str):
-        self._azure_credential = azure_credential
+    def __init__(self, azure_credential: DefaultAzureCredential, resource_id: str, client_id: str):
+        self._azure_credential = azure_credential 
         self._resource_id = resource_id
-    def request(
-        self,
-        request_type: str,
-        url: str,
-        accept: str = "application/json",
-        payload: Optional[Union[dict, list]] = None,
-        params: Optional[dict] = None
-    ) -> Any:
+        self._client_id = client_id
 
+    def request(self, request_type: str, url: str, accept: str = "application/json", payload: Optional[Union[dict, list]] = None, params: Optional[dict] = None) -> Any:
         if "ml" in self._resource_id.lower():
             auth_endpoint = "https://management.azure.com/.default"
         else:
             auth_endpoint = f"{self._resource_id}/.default"
 
-        azure_credential = ManagedIdentityCredential(client_id=CLIENT_ID)
-        access_token = azure_credential.get_token(auth_endpoint)
+        # Use the passed-in DefaultAzureCredential to get the access token
+        access_token = self._azure_credential.get_token(auth_endpoint)
 
         headers = {
             'Authorization': f'Bearer {access_token.token}',

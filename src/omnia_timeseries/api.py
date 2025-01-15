@@ -1,5 +1,6 @@
 from typing import List, Literal, Optional
 from azure.identity import ManagedIdentityCredential
+from azure.identity import DefaultAzureCredential
 from omnia_timeseries.http_client import HttpClient, ContentType
 from omnia_timeseries.models import (
     DatapointModel,
@@ -102,10 +103,10 @@ class TimeseriesAPI:
     :param TimeseriesEnvironment environment: API deployment environment
     """
 
-    def __init__(self, azure_credential: ManagedIdentityCredential, environment: TimeseriesEnvironment):
-        self._http_client = HttpClient(
-            azure_credential=azure_credential, resource_id=environment.resource_id)
-        self._base_url = environment.base_url.rstrip('/')
+    def __init__(self, azure_credential: DefaultAzureCredential, environment: TimeseriesEnvironment):
+        # Initialize HTTP client with the provided credentials and environment
+        self._http_client = HttpClient(azure_credential=azure_credential, resource_id=environment.resource_id)
+        self._base_url = environment.base_url.rstrip('/')  # Strip trailing slash from base URL
 
     def write_data(self, id: str, data: DatapointsPostRequestModel, write_async: Optional[bool] = None) -> MessageModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=writeData"""
