@@ -1,6 +1,5 @@
 from typing import Literal, Optional, TypedDict, Union, Dict, Any
-from azure.identity import ManagedIdentityCredential
-from azure.identity import DefaultAzureCredential
+from azure.identity._internal.msal_credentials import MsalCredential
 import requests
 import logging
 
@@ -9,8 +8,7 @@ from omnia_timeseries.models import TimeseriesRequestFailedException
 from importlib import metadata
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 import platform
-import os
-CLIENT_ID = os.getenv("AZURE_CLIENT_ID")
+
 ContentType = Literal["application/json",
                       "application/protobuf", "application/x-google-protobuf"]
 
@@ -43,19 +41,21 @@ def _request(
 
 
 class HttpClient:
-    def __init__(self, azure_credential: DefaultAzureCredential, resource_id: str):
-        self._azure_credential = azure_credential 
+    def __init__(self, azure_credential: MsalCredential, resource_id: str):
+        self._azure_credential = azure_credential
         self._resource_id = resource_id
 
-    def request(self, request_type: str, url: str, accept: str = "application/json", payload: Optional[Union[dict, list]] = None, params: Optional[dict] = None) -> Any:
-        if "ml" in self._resource_id.lower():
-            auth_endpoint = "https://management.azure.com/.default"
-        else:
-            auth_endpoint = f"{self._resource_id}/.default"
+    def request(
+        self,
+        request_type: RequestType,
+        url: str,
+        accept: ContentType = "application/json",
+        payload: Optional[Union[TypedDict, dict, list]] = None,
+        params: Optional[Dict[str, Any]] = None
+    ) -> Any:
 
-        # Use the passed-in DefaultAzureCredential to get the access token
-        access_token = self._azure_credential.get_token(auth_endpoint)
-
+        access_token = self._azure_credential.get_token(
+            f'{self._resource_id}/.default')  # handles caching and refreshing internally
         headers = {
             'Authorization': f'Bearer {access_token.token}',
             'Content-Type': 'application/json',

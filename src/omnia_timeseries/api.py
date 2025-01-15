@@ -1,6 +1,5 @@
 from typing import List, Literal, Optional
-from azure.identity import ManagedIdentityCredential
-from azure.identity import DefaultAzureCredential
+from azure.identity._internal.msal_credentials import MsalCredential
 from omnia_timeseries.http_client import HttpClient, ContentType
 from omnia_timeseries.models import (
     DatapointModel,
@@ -12,9 +11,9 @@ from omnia_timeseries.models import (
     StreamSubscriptionDataModel,
     TimeseriesPatchRequestItem, TimeseriesRequestItem
 )
-import re
 import logging
 from enum import Enum
+import re
 
 TimeseriesVersion = Literal["1.6", "1.7"]
 
@@ -47,11 +46,8 @@ class TimeseriesEnvironment:
         self._base_url = base_url.rstrip('/')
 
     def _sanitize_resource_id(self, resource_id: str) -> str:
-        """
-        Sanitizes the resource ID to ensure no 'ml' endpoints are passed.
-        """
         if re.search(r'\bml\b', resource_id.lower()) or "ml.azure.com" in resource_id.lower():
-            print("Replacing 'ml' endpoint with 'management.azure.com'")
+            print("🔧 Replacing 'ml' endpoint with 'management.azure.com'")
             return "https://management.azure.com"
 
         return resource_id
@@ -103,10 +99,10 @@ class TimeseriesAPI:
     :param TimeseriesEnvironment environment: API deployment environment
     """
 
-    def __init__(self, azure_credential: DefaultAzureCredential, environment: TimeseriesEnvironment):
-        # Initialize HTTP client with the provided credentials and environment
-        self._http_client = HttpClient(azure_credential=azure_credential, resource_id=environment.resource_id)
-        self._base_url = environment.base_url.rstrip('/')  # Strip trailing slash from base URL
+    def __init__(self, azure_credential: MsalCredential, environment: TimeseriesEnvironment):
+        self._http_client = HttpClient(
+            azure_credential=azure_credential, resource_id=environment.resource_id)
+        self._base_url = environment.base_url.rstrip('/')
 
     def write_data(self, id: str, data: DatapointsPostRequestModel, write_async: Optional[bool] = None) -> MessageModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=writeData"""
