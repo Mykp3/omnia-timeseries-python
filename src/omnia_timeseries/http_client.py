@@ -1,5 +1,4 @@
 from typing import Literal, Optional, TypedDict, Union, Dict, Any
-from azure.identity._internal.msal_credentials import MsalCredential
 from azure.identity import ManagedIdentityCredential
 import requests
 import logging
@@ -43,10 +42,10 @@ def _request(
 
 
 class HttpClient:
-    def __init__(self, azure_credential: MsalCredential, resource_id: str, client_id: Optional[str] = None):
+    def __init__(self, azure_credential: ManagedIdentityCredential, resource_id: str, client_id: Optional[str] = None):
         self._azure_credential = azure_credential
         self._resource_id = resource_id
-        self._client_id = client_id
+        self._client_id = os.getenv("AZURE_CLIENT_ID")
 
     def request(
         self,

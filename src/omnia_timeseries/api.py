@@ -1,6 +1,5 @@
 from typing import List, Literal, Optional
-import re
-from azure.identity._internal.msal_credentials import MsalCredential
+from azure.identity import ManagedIdentityCredential
 from omnia_timeseries.http_client import HttpClient, ContentType
 from omnia_timeseries.models import (
     DatapointModel,
@@ -12,6 +11,7 @@ from omnia_timeseries.models import (
     StreamSubscriptionDataModel,
     TimeseriesPatchRequestItem, TimeseriesRequestItem
 )
+import re
 import logging
 from enum import Enum
 
@@ -50,7 +50,7 @@ class TimeseriesEnvironment:
         Sanitizes the resource ID to ensure no 'ml' endpoints are passed.
         """
         if re.search(r'\bml\b', resource_id.lower()) or "ml.azure.com" in resource_id.lower():
-            print("🔧 Replacing 'ml' endpoint with 'management.azure.com'")
+            print("Replacing 'ml' endpoint with 'management.azure.com'")
             return "https://management.azure.com"
 
         return resource_id
@@ -102,7 +102,7 @@ class TimeseriesAPI:
     :param TimeseriesEnvironment environment: API deployment environment
     """
 
-    def __init__(self, azure_credential: MsalCredential, environment: TimeseriesEnvironment):
+    def __init__(self, azure_credential: ManagedIdentityCredential, environment: TimeseriesEnvironment):
         self._http_client = HttpClient(
             azure_credential=azure_credential, resource_id=environment.resource_id)
         self._base_url = environment.base_url.rstrip('/')
