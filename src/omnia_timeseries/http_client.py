@@ -1,5 +1,5 @@
 from typing import Literal, Optional, TypedDict, Union, Dict, Any
-from azure.identity._internal.msal_credentials import MsalCredential
+from azure.identity import ManagedIdentityCredential
 import requests
 import logging
 
@@ -8,6 +8,7 @@ from omnia_timeseries.models import TimeseriesRequestFailedException
 from importlib import metadata
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 import platform
+import os
 
 ContentType = Literal["application/json",
                       "application/protobuf", "application/x-google-protobuf"]
@@ -41,9 +42,24 @@ def _request(
 
 
 class HttpClient:
-    def __init__(self, azure_credential: MsalCredential, resource_id: str):
+    def __init__(self, azure_credential: ManagedIdentityCredential, resource_id: str):
         self._azure_credential = azure_credential
         self._resource_id = resource_id
+        self._client_id = os.getenv("AZURE_CLIENT_ID")
+    def _get_access_token(self) -> str:
+        resource_id = self._resource_id
+        auth_endpoint = "https://management.azure.com/.default" if "ml" in resource_id.lower() else f"{resource_id}/.default"
+
+        print(f" Using ManagedIdentityCredential with client_id: {self._client_id}")
+        try:
+            azure_credential = ManagedIdentityCredential(client_id=self._client_id)
+            token = azure_credential.get_token(auth_endpoint).token
+            print(f" Successfully retrieved token: {token[:10]}...")
+            return token
+
+        except Exception as e:
+            print(f" Error fetching token: {e}")
+            raise
 
     def request(
         self,

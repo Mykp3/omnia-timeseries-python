@@ -1,5 +1,5 @@
 from typing import List, Literal, Optional
-from azure.identity._internal.msal_credentials import MsalCredential
+from azure.identity import ManagedIdentityCredential
 from omnia_timeseries.http_client import HttpClient, ContentType
 from omnia_timeseries.models import (
     DatapointModel,
@@ -99,7 +99,7 @@ class TimeseriesAPI:
     :param TimeseriesEnvironment environment: API deployment environment
     """
 
-    def __init__(self, azure_credential: MsalCredential, environment: TimeseriesEnvironment):
+    def __init__(self, azure_credential: ManagedIdentityCredential, environment: TimeseriesEnvironment):
         self._http_client = HttpClient(
             azure_credential=azure_credential, resource_id=environment.resource_id)
         self._base_url = environment.base_url.rstrip('/')
