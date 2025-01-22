@@ -9,7 +9,7 @@ setup(
     packages=find_packages(where='src'),  # Look for packages in the `src` directory
     package_dir={'': 'src'},  
     install_requires=[
-        'azure-identity=1.19.0',
+        'azure-identity==1.19.0',
         'requests>=2.28.0',
         'opentelemetry-instrumentation-requests',
         'msal',
