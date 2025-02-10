@@ -45,14 +45,12 @@ class HttpClient:
     def __init__(self, azure_credential: ManagedIdentityCredential, resource_id: str):
         self._azure_credential = azure_credential
         self._resource_id = resource_id
-        self._client_id = os.getenv("AZURE_CLIENT_ID")
     def _get_access_token(self) -> str:
         resource_id = self._resource_id
         auth_endpoint = "https://management.azure.com/.default" if "ml" in resource_id.lower() else f"{resource_id}/.default"
 
-        print(f" Using ManagedIdentityCredential with client_id: {self._client_id}")
         try:
-            azure_credential = ManagedIdentityCredential(client_id=self._client_id)
+            azure_credential = ManagedIdentityCredential()
             token = azure_credential.get_token(auth_endpoint).token
             print(f" Successfully retrieved token: {token[:10]}...")
             return token
