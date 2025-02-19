@@ -45,12 +45,12 @@ class TimeseriesEnvironment:
         self._resource_id = self._sanitize_resource_id(resource_id)
         self._base_url = base_url.rstrip('/')
 
-    # def _sanitize_resource_id(self, resource_id: str) -> str:
-    #     if re.search(r'\bml\b', resource_id.lower()) or "ml.azure.com" in resource_id.lower():
-    #         print("🔧 Replacing 'ml' endpoint with 'management.azure.com'")
-    #         return "https://management.azure.com"
+    def _sanitize_resource_id(self, resource_id: str) -> str:
+        if re.search(r'\bml\b', resource_id.lower()) or "ml.azure.com" in resource_id.lower():
+            print("🔧 Replacing 'ml' endpoint with 'management.azure.com'")
+            return "https://management.azure.com"
 
-    #     return resource_id
+        return resource_id
 
     @classmethod
     def Dev(cls, version: TimeseriesVersion = "1.7"):
