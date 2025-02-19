@@ -45,12 +45,12 @@ class TimeseriesEnvironment:
         self._resource_id = self._sanitize_resource_id(resource_id)
         self._base_url = base_url.rstrip('/')
 
-    def _sanitize_resource_id(self, resource_id: str) -> str:
-        if re.search(r'\bml\b', resource_id.lower()) or "ml.azure.com" in resource_id.lower():
-            print("🔧 Replacing 'ml' endpoint with 'management.azure.com'")
-            return "https://management.azure.com"
+    # def _sanitize_resource_id(self, resource_id: str) -> str:
+    #     if re.search(r'\bml\b', resource_id.lower()) or "ml.azure.com" in resource_id.lower():
+    #         print("🔧 Replacing 'ml' endpoint with 'management.azure.com'")
+    #         return "https://management.azure.com"
 
-        return resource_id
+    #     return resource_id
 
     @classmethod
     def Dev(cls, version: TimeseriesVersion = "1.7"):
@@ -89,6 +89,16 @@ class TimeseriesEnvironment:
     @property
     def base_url(self) -> str:
         return self._base_url
+    
+class SanitizedApiClient:
+    def __init__(self, environment: TimeseriesEnvironment):
+        self._base_url = self._sanitize_resource_id(environment.base_url)
+
+    def _sanitize_resource_id(self, resource_id: str) -> str:
+        if re.search(r'\bml\b', resource_id.lower()) or "ml.azure.com" in resource_id.lower():
+            print(" Replacing 'ml' endpoint with 'management.azure.com'")
+            return "https://management.azure.com"
+        return resource_id
 
 class TimeseriesAPI:
     """
@@ -104,7 +114,7 @@ class TimeseriesAPI:
             azure_credential=azure_credential, resource_id=environment.resource_id)
         self._base_url = environment.base_url.rstrip('/')
 
-    def write_data(self, api_client, id: str, data: DatapointsPostRequestModel, write_async: Optional[bool] = None) -> MessageModel:
+    def write_data(self, api_client: SanitizedApiClient, id: str, data: DatapointsPostRequestModel, write_async: Optional[bool] = None) -> MessageModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=writeData"""
         return self._http_client.request(
@@ -114,7 +124,7 @@ class TimeseriesAPI:
             payload=data
         )
 
-    def write_multiple(self, api_client, items: DatapointsItemsModel, write_async: Optional[bool] = None) -> MessageModel:
+    def write_multiple(self, api_client: SanitizedApiClient, items: DatapointsItemsModel, write_async: Optional[bool] = None) -> MessageModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=writeMultipleData"""
         return self._http_client.request(
@@ -129,7 +139,7 @@ class TimeseriesAPI:
             
             self,
             id: str,
-            api_client,
+            api_client: SanitizedApiClient,
             startTime: Optional[str] = None,
             endTime: Optional[str] = None,
             status: Optional[List[int]] = None,
@@ -164,7 +174,7 @@ class TimeseriesAPI:
 
     def get_datapoints_by_name(
             self,
-            api_client,
+            api_client: SanitizedApiClient,
             name: str,
             facility: str,
             terminal: Optional[str] = None,
@@ -206,7 +216,7 @@ class TimeseriesAPI:
 
     def get_multi_datapoints(
             self,
-            api_client,
+            api_client: SanitizedApiClient,
             request: List[GetMultipleDatapointsRequestItem],
             continuationToken: Optional[str] = None,
             federationSource: Optional[Enum] = None,
@@ -229,7 +239,7 @@ class TimeseriesAPI:
     def get_aggregates(
             self,
             id: str,
-            api_client,
+            api_client: SanitizedApiClient,
             aggregateFunction: List[Literal['avg', 'min', 'max', 'sum', 'stddev', 'count', 'first', 'last']],
             startTime: Optional[str] = None,
             endTime: Optional[str] = None,
@@ -270,7 +280,7 @@ class TimeseriesAPI:
 
     def get_first_datapoint(
             self,
-            api_client,
+            api_client: SanitizedApiClient,
             id: str,
             afterTime: Optional[str] = None,
             beforeTime: Optional[str] = None,
@@ -298,7 +308,7 @@ class TimeseriesAPI:
     def get_latest_datapoint(
             self,
             id: str,
-            api_client,
+            api_client: SanitizedApiClient,
             afterTime: Optional[str] = None,
             beforeTime: Optional[str] = None,
             status: Optional[List[int]] = None,
@@ -323,7 +333,7 @@ class TimeseriesAPI:
         )
 
     def get_first_multi_datapoint(self,
-                                  api_client,
+                                  api_client: SanitizedApiClient,
                                   request: List[GetMultipleDatapointsRequestItem],
                                   federationSource: Optional[Enum] = None,
                                   accept: ContentType = "application/json") -> GetDatapointsResponseModel:
@@ -358,7 +368,7 @@ class TimeseriesAPI:
             params=params
         )
 
-    def get_history(self, api_client, id: str) -> GetHistoryResponseModel:
+    def get_history(self, api_client: SanitizedApiClient, id: str) -> GetHistoryResponseModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=getHistory"""
         return self._http_client.request(
@@ -368,7 +378,7 @@ class TimeseriesAPI:
 
     def get_timeseries(
             self,
-            api_client,
+            api_client: SanitizedApiClient,
             name: Optional[str] = None,
             externalId: Optional[str] = None,
             source: Optional[str] = None,
@@ -405,7 +415,7 @@ class TimeseriesAPI:
 
     def search_timeseries(
             self,
-            api_client,
+            api_client: SanitizedApiClient,
             query: Optional[str] = None,
             name: Optional[str] = None,
             externalId: Optional[str] = None,
@@ -446,7 +456,7 @@ class TimeseriesAPI:
             params=params
         )
 
-    def get_timeseries_by_id(self, api_client, id: str) -> GetTimeseriesResponseModel:
+    def get_timeseries_by_id(self, api_client: SanitizedApiClient, id: str) -> GetTimeseriesResponseModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=getTimeseriesById"""
         return self._http_client.request(
@@ -454,7 +464,7 @@ class TimeseriesAPI:
             url=f"{sanitized_url}/{id}"
         )
 
-    def post_timeseries(self, api_client, request: TimeseriesRequestItem) -> GetTimeseriesResponseModel:
+    def post_timeseries(self, api_client: SanitizedApiClient, request: TimeseriesRequestItem) -> GetTimeseriesResponseModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=postTimeseries"""
         return self._http_client.request(
@@ -463,7 +473,7 @@ class TimeseriesAPI:
             payload=request
         )
 
-    def get_or_add_timeseries(self, api_client, request: List[TimeseriesRequestItem]) -> GetTimeseriesResponseModel:
+    def get_or_add_timeseries(self, api_client: SanitizedApiClient, request: List[TimeseriesRequestItem]) -> GetTimeseriesResponseModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetOrAddTimeseries"""
         return self._http_client.request(
@@ -472,7 +482,7 @@ class TimeseriesAPI:
             payload=request
         )
 
-    def patch_timeseries(self, api_client, id: str, request: TimeseriesPatchRequestItem) -> GetTimeseriesResponseModel:
+    def patch_timeseries(self, api_client: SanitizedApiClient, id: str, request: TimeseriesPatchRequestItem) -> GetTimeseriesResponseModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=patchTimeseries"""
         return self._http_client.request(
@@ -481,7 +491,7 @@ class TimeseriesAPI:
             payload=request
         )
 
-    def put_timeseries(self, api_client, id: str, request: TimeseriesRequestItem) -> GetTimeseriesResponseModel:
+    def put_timeseries(self, api_client: SanitizedApiClient, id: str, request: TimeseriesRequestItem) -> GetTimeseriesResponseModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=puttimeseries"""
         return self._http_client.request(
@@ -490,7 +500,7 @@ class TimeseriesAPI:
             payload=request
         )
 
-    def create_stream_subscription(self, api_client, subscriptions: List[StreamSubscriptionRequestModel]) -> MessageModel:
+    def create_stream_subscription(self, api_client: SanitizedApiClient, subscriptions: List[StreamSubscriptionRequestModel]) -> MessageModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=CreateSubscriptions"""
         return self._http_client.request(
@@ -499,7 +509,7 @@ class TimeseriesAPI:
             payload=subscriptions
         )
 
-    def delete_stream_subscription(self, api_client, id: str) -> MessageModel:
+    def delete_stream_subscription(self, api_client: SanitizedApiClient, id: str) -> MessageModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=DeleteSubscriptions"""
         return self._http_client.request(
@@ -507,7 +517,7 @@ class TimeseriesAPI:
             url=f"{sanitized_url}/streaming/subscriptions/{id}"
         )
 
-    def get_streaming_subscriptions(self, api_client) -> StreamSubscriptionDataModel:
+    def get_streaming_subscriptions(self, api_client: SanitizedApiClient) -> StreamSubscriptionDataModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetSubscriptions"""
         return self._http_client.request(
@@ -515,7 +525,7 @@ class TimeseriesAPI:
             url=f"{sanitized_url}/streaming/subscriptions"
         )
 
-    def set_stream_destination(self, api_client, connectionString: str) -> MessageModel:
+    def set_stream_destination(self, api_client: SanitizedApiClient, connectionString: str) -> MessageModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=SetRealTimeDestination"""
         return self._http_client.request(
@@ -526,7 +536,7 @@ class TimeseriesAPI:
             }
         )
 
-    def delete_timeseries_by_id(self, api_client, id: str) -> MessageModel:
+    def delete_timeseries_by_id(self, api_client: SanitizedApiClient, id: str) -> MessageModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=DeleteTimeseries"""
         return self._http_client.request(
@@ -534,7 +544,7 @@ class TimeseriesAPI:
             url=f"{sanitized_url}/{id}"
         )
 
-    def delete_data(self, api_client, id: str, startTime: Optional[str] = None, endTime: Optional[str] = None) -> MessageModel:
+    def delete_data(self, api_client: SanitizedApiClient, id: str, startTime: Optional[str] = None, endTime: Optional[str] = None) -> MessageModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=deleteData"""
         params = {}
@@ -548,7 +558,7 @@ class TimeseriesAPI:
             params=params
         )
 
-    def get_facilities(self, api_client) -> FacilityDataModel:
+    def get_facilities(self, api_client: SanitizedApiClient) -> FacilityDataModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetFacets"""
         return self._http_client.request(
@@ -556,7 +566,7 @@ class TimeseriesAPI:
             url=f"{sanitized_url}/facets/facility"
         )
 
-    def get_sources(self, api_client) ->  SourceDataModel:
+    def get_sources(self, api_client: SanitizedApiClient) ->  SourceDataModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)        
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetFacets"""
         return self._http_client.request(
@@ -564,7 +574,7 @@ class TimeseriesAPI:
             url=f"{sanitized_url}/facets/source"
         )
         
-    def get_sources_by_facility(self, api_client, facility: str) ->  SourceDataModel:
+    def get_sources_by_facility(self, api_client: SanitizedApiClient, facility: str) ->  SourceDataModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetFacets"""
         return self._http_client.request(
@@ -572,7 +582,7 @@ class TimeseriesAPI:
             url=f"{sanitized_url}/facets/source?facility={facility}"
         )
 
-    def get_facilities_by_source(self, api_client, source: str) -> FacilityDataModel:
+    def get_facilities_by_source(self, api_client: SanitizedApiClient, source: str) -> FacilityDataModel:
         sanitized_url = api_client._sanitize_resource_id(api_client._base_url)
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=GetFacets"""
         return self._http_client.request(
