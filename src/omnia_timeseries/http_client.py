@@ -50,8 +50,7 @@ class HttpClient:
         auth_endpoint = "https://management.azure.com/.default" if "ml" in resource_id.lower() else f"{resource_id}/.default"
 
         try:
-            azure_credential = ManagedIdentityCredential()
-            token = azure_credential.get_token(auth_endpoint).token
+            token = self._azure_credential.get_token(auth_endpoint).token
             print(f" Successfully retrieved token: {token[:10]}...")
             return token
 
