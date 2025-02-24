@@ -42,34 +42,25 @@ def _request(
 
 
 class HttpClient:
-    def __init__(self, azure_credential: ManagedIdentityCredential, resource_id: str, base_url: str):
-        self._azure_credential = azure_credential
+    def __init__(self, resource_id: str):
         self._resource_id = resource_id
-        self._base_url = base_url
-
-    def _sanitize_for_mgmt(self):
-        """
-        If 'ml' is found in the URL, substitute both resource_id and base_url
-        with management endpoint.
-        """
-        if "ml" in self._base_url.lower() or "ml" in self._resource_id.lower():
-            print("Substituting with management.azure.com endpoint due to 'ml' in URL.")
-            self._base_url = "https://management.azure.com"
-            self._resource_id = "https://management.azure.com/.default"
-        else:
-            self._resource_id = f"{self._resource_id}/.default"
 
     def _get_access_token(self) -> str:
-        try:
-            self._sanitize_for_mgmt()
+        auth_endpoint = (
+            "https://management.azure.com/.default"
+            if "ml" in self._resource_id.lower()
+            else f"{self._resource_id}/.default"
+        )
 
-            print(f"Requesting token from: {self._resource_id}")
-            token = self._azure_credential.get_token(self._resource_id).token
+        try:
+            # F R E S H  C R E D E N T I A L  PER CALLL
+            azure_credential = ManagedIdentityCredential()
+            token = azure_credential.get_token(auth_endpoint).token
             print(f"Successfully retrieved token: {token[:10]}...")
             return token
 
         except Exception as e:
-            print(f" Error fetching token: {e}")
+            print(f"Error fetching token: {e}")
             raise
 
     def request(
