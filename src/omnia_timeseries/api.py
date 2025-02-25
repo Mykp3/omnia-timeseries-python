@@ -12,6 +12,7 @@ from omnia_timeseries.models import (
     TimeseriesPatchRequestItem, TimeseriesRequestItem
 )
 import logging
+logging.basicConfig(level=logging.DEBUG)
 from enum import Enum
 import re
 
@@ -106,10 +107,12 @@ class TimeseriesAPI:
     :param TimeseriesEnvironment environment: API deployment environment
     """
 
-    def __init__(self, environment: TimeseriesEnvironment):
+    def __init__(self, environment: TimeseriesEnvironment, azure_credential=None, credential=None):
         self._http_client = HttpClient(
             resource_id=environment.resource_id)
         self._base_url = environment.base_url.rstrip('/')
+        if azure_credential or credential:
+          print("'azure_credential' and 'credential' parameters are currently ignored.")
 
     def write_data(self, id: str, data: DatapointsPostRequestModel, write_async: Optional[bool] = None) -> MessageModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=writeData"""

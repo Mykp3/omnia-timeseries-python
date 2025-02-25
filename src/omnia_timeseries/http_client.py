@@ -2,7 +2,7 @@ from typing import Literal, Optional, TypedDict, Union, Dict, Any
 from azure.identity import ManagedIdentityCredential
 import requests
 import logging
-
+logging.basicConfig(level=logging.DEBUG)
 from omnia_timeseries.helpers import retry
 from omnia_timeseries.models import TimeseriesRequestFailedException
 from importlib import metadata
