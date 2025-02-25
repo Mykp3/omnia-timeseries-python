@@ -63,21 +63,26 @@ class HttpClient:
             print(f"Error fetching token: {e}")
             raise
 
-    def request(
-        self,
-        request_type: RequestType,
-        url: str,
-        accept: ContentType = "application/json",
-        payload: Optional[Union[TypedDict, dict, list]] = None,
-        params: Optional[Dict[str, Any]] = None
-    ) -> Any:
+def request(
+    self,
+    request_type: RequestType,
+    url: str,
+    accept: ContentType = "application/json",
+    payload: Optional[Union[TypedDict, dict, list]] = None,
+    params: Optional[Dict[str, Any]] = None
+) -> Any:
+    access_token = self._get_access_token()
 
-        access_token = self._azure_credential.get_token(
-            f'{self._resource_id}/.default')  # handles caching and refreshing internally
-        headers = {
-            'Authorization': f'Bearer {access_token.token}',
-            'Content-Type': 'application/json',
-            'Accept': accept,
-            'User-Agent': f'Omnia Timeseries SDK/{version} {system_version_string}'
-        }
-        return _request(request_type=request_type, url=url, headers=headers, payload=payload, params=params)
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+        'Accept': accept,
+        'User-Agent': f'Omnia Timeseries SDK/{version} {system_version_string}'
+    }
+    return _request(
+        request_type=request_type,
+        url=url,
+        headers=headers,
+        payload=payload,
+        params=params
+    )
