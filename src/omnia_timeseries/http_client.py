@@ -71,18 +71,37 @@ class HttpClient:
             print(f"Error fetching token: {e}")
             raise
 
-    def test_token_retrieval(self):
+    #def test_token_retrieval(self, resource_id):
+        # """
+        # Diagnostic method to test token retrieval explicitly.
+        # """
+        # print("Testing get_token with https://management.azure.com/.default...")
+        # try:
+        #     token = self._azure_credential.get_token("https://management.azure.com/.default").token
+        #     print(f"Token successfully retrieved: {token[:20]} ...")
+        # except Exception as e:
+        #     print("Failure to get token for https://management.azure.com/.default")
+        #     print(f"Error details: {e}")
+        # print("Trying to connect to AML workspace")
+    def test_token_retrieval(self, test_resource_ids: list):
         """
-        🔥 Diagnostic method to test token retrieval explicitly.
+        🔥 Custom token retrieval for a list of resource IDs.
+        Detects 'ml' in resource_id and switches to the management endpoint.
         """
-        print("⚡ Testing get_token with https://management.azure.com/.default...")
-        try:
-            token = self._azure_credential.get_token("https://management.azure.com/.default").token
-            print(f"✅ Token successfully retrieved: {token[:20]} ...")
-        except Exception as e:
-            print("Failure to get token for https://management.azure.com/.default")
-            print(f"Error details: {e}")
-        print("Trying to connect to AML workspace")
+        for resource_id in test_resource_ids:
+            if "ml" in resource_id.lower():
+                print(f"'ml' detected in resource_id: {resource_id}. Using 'https://management.azure.com/.default'")
+                auth_endpoint = "https://management.azure.com/.default"
+            else:
+                auth_endpoint = f"{resource_id}/.default"
+
+            try:
+                print(f"Retrieving token for: {auth_endpoint}")
+                credential = ManagedIdentityCredential() 
+                token = credential.get_token(auth_endpoint).token
+                print(f"Access token for {resource_id}: {token[:10]}...")
+            except Exception as e:
+                print(f"Error retrieving token for {resource_id}: {e}")
     
         try:
             credential = ManagedIdentityCredential()
