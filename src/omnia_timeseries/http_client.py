@@ -10,6 +10,34 @@ from opentelemetry.instrumentation.requests import RequestsInstrumentor
 import platform
 import os
 
+#setting variables to connect to to workspace 
+sub_id = "019958ea-fe2c-4e14-bbd9-0d2db8ed7cfc"
+rg = "dev-aurora-aion-test"
+ws = "aion-ws-aion-test"
+ 
+credential = ManagedIdentityCredential()
+ 
+print("Testing get_token.....")
+try:
+    print("Testing with https://management.azure.com/.default...")
+    token = credential.get_token("https://management.azure.com/.default").token
+    print(f"Token: {token[:20]} ...")
+except Exception as e:
+    print("Failure to get token for https://management.azure.com/.default")
+    print(f"Error: {e}")
+ 
+print("Trying to connect to AML workspace")
+from azure.ai.ml import MLClient
+try:
+    credential = ManagedIdentityCredential()
+    ml_client = MLClient(subscription_id=sub_id,resource_group_name=rg, workspace_name=ws,credential=credential)
+    workspace = ml_client.workspaces.get(ws)
+    print(f"Successfully connected to AML workspace: {workspace.name}")
+    
+except Exception as e:
+    print("Failed to connect to AML workspace")
+    print(f"Error: {e}")
+
 ContentType = Literal["application/json",
                       "application/protobuf", "application/x-google-protobuf"]
 
@@ -41,8 +69,10 @@ def _request(
         return response.content
 
 
+
 class HttpClient:
-    def __init__(self, resource_id: str):
+    def __init__(self, azure_credential: ManagedIdentityCredential, resource_id: str):
+        self._azure_credential = azure_credential
         self._resource_id = resource_id
 
     def _get_access_token(self) -> str:

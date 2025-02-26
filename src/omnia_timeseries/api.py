@@ -1,5 +1,5 @@
 from typing import List, Literal, Optional
-from azure.identity import ManagedIdentityCredential
+from azure.identity._internal.msal_credentials import MsalCredential
 from omnia_timeseries.http_client import HttpClient, ContentType
 from omnia_timeseries.models import (
     DatapointModel,
@@ -11,10 +11,10 @@ from omnia_timeseries.models import (
     StreamSubscriptionDataModel,
     TimeseriesPatchRequestItem, TimeseriesRequestItem
 )
+
 import logging
 logging.basicConfig(level=logging.DEBUG)
 from enum import Enum
-import re
 
 TimeseriesVersion = Literal["1.6", "1.7"]
 
@@ -43,22 +43,8 @@ class TimeseriesEnvironment:
         :param str resource_id: Resource/client id of API app registration (Azure SPN)
         :param str base_url: Baze url of API
         '''
-        self._resource_id = self._sanitize_resource_id(resource_id)
-        self._base_url = self._sanitize_base_url(base_url).rstrip('/')
-
-    def _sanitize_resource_id(self, resource_id: str) -> str:
-        if re.search(r'\bml\b', resource_id.lower()) or "ml.azure.com" in resource_id.lower():
-            print("Replacing 'ml' endpoint with 'management.azure.com'")
-            return "https://management.azure.com"
-        return resource_id
-
-    def _sanitize_base_url(self, base_url: str) -> str:
-        if "ml.azure.com" in base_url.lower():
-            print("Replacing 'ml' endpoint with 'management.azure.com' for base URL")
-            return "https://management.azure.com"
-        return base_url
-
-        
+        self._resource_id = resource_id
+        self._base_url = base_url
 
     @classmethod
     def Dev(cls, version: TimeseriesVersion = "1.7"):
@@ -107,12 +93,10 @@ class TimeseriesAPI:
     :param TimeseriesEnvironment environment: API deployment environment
     """
 
-    def __init__(self, environment: TimeseriesEnvironment, azure_credential=None, credential=None):
+    def __init__(self, azure_credential: MsalCredential, environment: TimeseriesEnvironment):
         self._http_client = HttpClient(
-            resource_id=environment.resource_id)
+            azure_credential=azure_credential, resource_id=environment.resource_id)
         self._base_url = environment.base_url.rstrip('/')
-        if azure_credential or credential:
-          print("'azure_credential' and 'credential' parameters are currently ignored.")
 
     def write_data(self, id: str, data: DatapointsPostRequestModel, write_async: Optional[bool] = None) -> MessageModel:
         """https://api.equinor.com/api-details#api=Timeseries-api-v1-7&operation=writeData"""
