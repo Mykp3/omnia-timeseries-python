@@ -10,6 +10,7 @@ setup(
     package_dir={'': 'src'},  
     install_requires=[
         'azure-identity==1.19.0',
+        'azure-ai-ml==1.25.0',
         'requests>=2.28.0',
         'opentelemetry-instrumentation-requests',
         'msal',
