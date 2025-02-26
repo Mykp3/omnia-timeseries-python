@@ -26,17 +26,7 @@ except Exception as e:
     print("Failure to get token for https://management.azure.com/.default")
     print(f"Error: {e}")
  
-print("Trying to connect to AML workspace")
-from azure.ai.ml import MLClient
-try:
-    credential = ManagedIdentityCredential()
-    ml_client = MLClient(subscription_id=sub_id,resource_group_name=rg, workspace_name=ws,credential=credential)
-    workspace = ml_client.workspaces.get(ws)
-    print(f"Successfully connected to AML workspace: {workspace.name}")
-    
-except Exception as e:
-    print("Failed to connect to AML workspace")
-    print(f"Error: {e}")
+
 
 ContentType = Literal["application/json",
                       "application/protobuf", "application/x-google-protobuf"]
@@ -67,7 +57,7 @@ def _request(
         return response.json()
     else:
         return response.content
-
+from azure.ai.ml import MLClient
 
 
 class HttpClient:
@@ -92,6 +82,29 @@ class HttpClient:
         except Exception as e:
             print(f"Error fetching token: {e}")
             raise
+
+    def test_token_retrieval(self):
+        """
+        🔥 Diagnostic method to test token retrieval explicitly.
+        """
+        print("⚡ Testing get_token with https://management.azure.com/.default...")
+        try:
+            token = self._azure_credential.get_token("https://management.azure.com/.default").token
+            print(f"✅ Token successfully retrieved: {token[:20]} ...")
+        except Exception as e:
+            print("Failure to get token for https://management.azure.com/.default")
+            print(f"Error details: {e}")
+        print("Trying to connect to AML workspace")
+    
+        try:
+            credential = ManagedIdentityCredential()
+            ml_client = MLClient(subscription_id=sub_id,resource_group_name=rg, workspace_name=ws,credential=credential)
+            workspace = ml_client.workspaces.get(ws)
+            print(f"Successfully connected to AML workspace: {workspace.name}")
+            
+        except Exception as e:
+            print("Failed to connect to AML workspace")
+            print(f"Error: {e}")
 
     def request(
         self,
