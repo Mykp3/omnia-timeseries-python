@@ -14,18 +14,6 @@ import os
 sub_id = "019958ea-fe2c-4e14-bbd9-0d2db8ed7cfc"
 rg = "dev-aurora-aion-test"
 ws = "aion-ws-aion-test"
- 
-credential = ManagedIdentityCredential()
- 
-print("Testing get_token.....")
-try:
-    print("Testing with https://management.azure.com/.default...")
-    token = credential.get_token("https://management.azure.com/.default").token
-    print(f"Token: {token[:20]} ...")
-except Exception as e:
-    print("Failure to get token for https://management.azure.com/.default")
-    print(f"Error: {e}")
- 
 
 
 ContentType = Literal["application/json",
